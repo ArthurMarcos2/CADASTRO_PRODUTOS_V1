@@ -1,83 +1,110 @@
 //
-//FASE 1: modelagem dos dados (Classe Base)
+// FASE 1: modelagem dos dados (Classe Base)
 //
-//A classe funciona como um molde para criar produtos
-class Produto{
-    constructor(nome,preco,quantidade){
-        //propriedades do objeto recebidas no momento da criação
+class Produto {
+    #preco;
+    #quantidade;
+
+    constructor(nome, preco, quantity) {
+        if (nome === "") {
+            throw new Error("O nome não pode ficar em branco!");
+        }
+        if (preco <= 0) {
+            throw new Error("O preço deve ser maior que zero!");
+        }
+        if (quantity <= 0) {
+            throw new Error("A quantidade deve ser maior que zero!");
+        }
+
         this.nome = nome;
-        this.preco =parseFloat(preco);
-        this.quantidade = parseInt(quantidade);
+        this.#preco = parseFloat(preco);
+        this.#quantidade = parseInt(quantity);
     }
-    //método que calcula o subtotal
-    calcularSubtotal(){
-        return this.preco*this.quantidade;
+
+    get preco() {
+        return this.#preco;
+    }
+
+    get quantidade() {
+        return this.#quantidade;
+    }
+
+    calcularSubtotal() {
+        return this.#preco * this.#quantidade;
     }
 }
 
 //
-//FASE 2: Gerenciamento de Estado (memória)
+// FASE 2: Gerenciamento de Estado (memória)
 //
-//Array global que guardará todas as instâncias da classe Produto
-
 const listaDeProdutos = [];
 
 //
-//FASE 3: Escuta de Eventos do DOM
+// FASE 3: Escuta de Eventos do DOM
 //
-//Selecionamos o formulário pelo ID
 const formProduto = document.getElementById("produto-form");
 
-//adicionar um escutador de eventos para quando o formulário for enviado
-formProduto.addEventListener("submit",function(event){
+formProduto.addEventListener("submit", function (event) {
     event.preventDefault();
 
-    //1.captura dos valores digitados nos campos de input
     const nomeInput = document.getElementById("nome").value;
     const precoInput = document.getElementById("preco").value;
     const quantidadeInput = document.getElementById("quantidade").value;
 
-    //2. Criar uma nova instância da classe Produto
-    const novoProduto = new Produto(nomeInput,precoInput,quantidadeInput);
+    try {
+        const fieldProduto = new Produto(nomeInput, precoInput, quantidadeInput);
+        listaDeProdutos.push(fieldProduto);
 
+        renderizarTabela();
+        atualizarTotalEstoque();
+        formProduto.reset();
+    } catch (erro) {
+        alert(erro.message);
+    }
+});
 
-    //3.Adiciona o novo produto ao array
-    listaDeProdutos.push(novoProduto);
-
-    //4. atualiza a exibição da tabela e limpa o formulário
+document.getElementById("limpar-tabela").addEventListener("click", function () {
+    listaDeProdutos.length = 0;
     renderizarTabela();
-    formProduto.reset();
+    atualizarTotalEstoque();
 });
 
 //
-//FASE 4: Renderização da Interface DOM
+// FASE 4: Renderização da Interface DOM
 //
-//função responsável por desenhar na tela o estado
-//atual do array listDeProdutos
-function renderizarTabela(){
-    //seleciona o corpo da tabela (tbody)
+function renderizarTabela() {
     const tabelaBody = document.querySelector("#tabela-produtos tbody");
-
-    //limpa o conteúdo anterior da tabela
     tabelaBody.innerHTML = "";
 
-    //percorre o array de produtos usando forEach
-    listaDeProdutos.forEach((produto)=>{
-        //criar uam linha tr dentro da tabela
+    listaDeProdutos.forEach(function (produto, index) {
         const linha = document.createElement("tr");
 
-        //preenche o conteúdo da linha com os dados do objeto
         linha.innerHTML = `
             <td>${produto.nome}</td>
             <td>R$ ${produto.preco.toFixed(2)}</td>
             <td>${produto.quantidade}</td>
             <td>R$ ${produto.calcularSubtotal().toFixed(2)}</td>
             <td>
-                <button class="btn-remover">Remover</button>
+                <button class="btn-remover" onclick="removerProduto(${index})">Remover</button>
             </td>
         `;
-
-        //insere a linha criada dentro do tbody da tabela
         tabelaBody.appendChild(linha);
-    })
+    });
+}
+
+//
+// FASE 5: Funções de Cálculo e Controle
+//
+function atualizarTotalEstoque() {
+    const total = listaDeProdutos.reduce(function (acumulador, produto) {
+        return acumulador + produto.calcularSubtotal();
+    }, 0);
+
+    document.getElementById("total-estoque").innerText = "Total em Estoque: R$ " + total.toFixed(2);
+}
+
+function removerProduto(index) {
+    listaDeProdutos.splice(index, 1);
+    renderizarTabela();
+    atualizarTotalEstoque();
 }
